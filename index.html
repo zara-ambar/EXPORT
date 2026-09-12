@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EXPOR</title>
+<title>EXPORT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -274,7 +274,7 @@
   .hist-table tr:hover td{background:var(--amber-soft);}
   .hist-empty{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);padding:14px;text-align:center;border:1px dashed var(--line);border-radius:var(--radius);}
 
-  .hist-table th.th-aksi{width:76px;text-align:center;}
+  .hist-table th.th-aksi{width:108px;text-align:center;}
   .hist-table td.td-aksi{text-align:center;padding:6px;white-space:nowrap;}
   .hist-table th.th-check{width:36px;text-align:center;}
   .hist-table td.td-check{text-align:center;padding:6px;}
@@ -289,6 +289,7 @@
   .btn-aksi-icon:active{transform:scale(.94);}
   .btn-edit{background:var(--navy-2);}
   .btn-hapus{background:var(--danger);}
+  .btn-post{background:#1E88C7;}
 
   .selected-actions-bar{
     display:none;align-items:center;justify-content:space-between;gap:10px;
@@ -303,6 +304,26 @@
     border-radius:3px;flex-shrink:0;
   }
   .btn-share-selected:hover{background:#1EBE55;}
+
+  .download-report-bar{
+    display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 2px rgba(20,25,40,0.04);
+  }
+  .download-report-bar .field{min-width:150px;}
+  .btn-download-report{
+    background:#1E88C7;color:#fff;padding:11px 18px;font-size:12px;
+    letter-spacing:0.03em;text-transform:uppercase;font-family:'Oswald',sans-serif;font-weight:600;
+    border-radius:3px;flex-shrink:0;
+  }
+  .btn-download-report:hover{background:#166C9E;}
+  .btn-download-report:disabled{background:#A6ACB6;cursor:not-allowed;}
+  .download-report-status{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);
+    margin-bottom:10px;min-height:14px;
+  }
+  .download-report-status.ok{color:var(--ok);}
+  .download-report-status.err{color:var(--danger);}
 
   /* ── MODE HP ───────────────────────── */
   @media (max-width:560px){
@@ -351,8 +372,8 @@
 
  <div class="masthead">
     <div>
-      <h1>FORM EXPORT</h1>
-      <div class="sub">· WH FINISH GOODS</div>
+      <h1>FORM UPDATE PENGERJAAN EXPORT</h1>
+      <div class="sub">· GBJ PLATINUM LEBANI</div>
     </div>
     <div class="tag" id="planCount">1 PENGERJAAN</div>
   </div>
@@ -397,6 +418,20 @@
       <h2>Riwayat Pengerjaan</h2>
       <button class="btn btn-refresh" id="refreshBtn" type="button">↻ History</button>
     </div>
+
+    <div class="download-report-bar">
+      <div class="field small">
+        <label>Dari Tanggal</label>
+        <input type="date" id="reportDari">
+      </div>
+      <div class="field small">
+        <label>Sampai Tanggal</label>
+        <input type="date" id="reportSampai">
+      </div>
+      <button class="btn btn-download-report" id="downloadReportBtn" type="button">⬇️ Tarik Data</button>
+    </div>
+    <div id="downloadReportStatus" class="download-report-status"></div>
+
     <div id="selectedActionsBar" class="selected-actions-bar">
       <span id="selectedCountText">0 dipilih</span>
       <button class="btn btn-share-selected" id="shareSelectedBtn" type="button">💬 Bagikan Terpilih ke WA</button>
@@ -431,6 +466,8 @@
       invoice: '',
       tanggal: '',
       totalPL: '',
+      keteranganFinish: '',
+      keteranganAreaBarang: '',
       motifGroups: [ { no:'#1', items:[ { motif:'', area:'' } ] } ]
     };
   }
@@ -513,7 +550,7 @@
       const state = JSON.parse(raw);
       if(!state || !state.plans || !state.plans.length) return false;
       planSeq = state.planSeq || state.plans.length;
-      plans = state.plans;
+      plans = state.plans.map(p => ({ keteranganFinish:'', keteranganAreaBarang:'', ...p }));
       if(state.globalTanggal) document.getElementById('globalTanggal').value = state.globalTanggal;
       if(state.globalShift) document.getElementById('globalShift').value = state.globalShift;
       return true;
@@ -585,7 +622,7 @@
     const fPL = el('div','field');
     fPL.appendChild(el('label',null,'Total PL — Container'));
     const inPL = document.createElement('input');
-    inPL.type='text'; inPL.placeholder='cth: 4 (manual / angka)'; inPL.value=plan.totalPL;
+    inPL.type='text'; inPL.placeholder='cth: 4 Container'; inPL.value=plan.totalPL;
     inPL.oninput = e => { plan.totalPL = e.target.value; updateJson(); };
     fPL.appendChild(inPL);
     r3.appendChild(fPL);
@@ -593,13 +630,35 @@
 
     // DIVIDER: Finish (judul untuk Motif & Area)
     body.appendChild(dividerEl('Finish — Motif & Area'));
+
+    const rKet = el('div','field-row');
+    const fKet = el('div','field');
+    fKet.appendChild(el('label',null,'Keterangan'));
+    const inKet = document.createElement('input');
+    inKet.type='text'; inKet.placeholder='FINISH LENGKAP'; inKet.value=plan.keteranganFinish || '';
+    inKet.oninput = e => { plan.keteranganFinish = e.target.value; updateJson(); };
+    fKet.appendChild(inKet);
+    rKet.appendChild(fKet);
+    body.appendChild(rKet);
+
     plan.motifGroups.forEach((grp, gi) => body.appendChild(renderMotifGroup(plan, grp, gi)));
     const addMotifWrap = el('div','add-brg-wrap');
-    const addMotifBtn = el('button','btn btn-add','+ Tambah Pagar (#)');
+    const addMotifBtn = el('button','btn btn-add','+ Tambah Container (#)');
     addMotifBtn.type='button';
     addMotifBtn.onclick = () => { plan.motifGroups.push({no:'#'+Math.min(plan.motifGroups.length+1,30), items:[{motif:'',area:''}]}); render(); };
     addMotifWrap.appendChild(addMotifBtn);
     body.appendChild(addMotifWrap);
+
+    const rKetArea = el('div','field-row');
+    rKetArea.style.marginTop = '12px';
+    const fKetArea = el('div','field');
+    fKetArea.appendChild(el('label',null,'Keterangan Area Barang'));
+    const inKetArea = document.createElement('input');
+    inKetArea.type='text'; inKetArea.placeholder='cth: BARANG DI AREA EXPORT SEMUA'; inKetArea.value=plan.keteranganAreaBarang || '';
+    inKetArea.oninput = e => { plan.keteranganAreaBarang = e.target.value; updateJson(); };
+    fKetArea.appendChild(inKetArea);
+    rKetArea.appendChild(fKetArea);
+    body.appendChild(rKetArea);
 
     card.appendChild(body);
 
@@ -610,7 +669,7 @@
     const g = el('div','brg-group');
     const head = el('div','brg-head');
     head.appendChild(makeNoSelect(grp.no || ('#'+(gi+1)), (v)=>{ grp.no = v; }));
-    head.appendChild(el('span','hint','Motif &amp; Area untuk pagar ini'));
+    head.appendChild(el('span','hint','Container &amp; Area untuk pagar ini'));
     if(plan.motifGroups.length > 1){
       const rm = el('button','btn btn-icon','✕');
       rm.type='button'; rm.title='Hapus pagar ini';
@@ -665,6 +724,8 @@
       invoice: plan.invoice,
       tanggal: plan.tanggal || null,
       total_pl: plan.totalPL,
+      keterangan_finish: plan.keteranganFinish,
+      keterangan_area_barang: plan.keteranganAreaBarang,
       motif_rows: plan.motifGroups,
       shift: shiftGlobal,
       tanggal_laporan: tglGlobal
@@ -689,6 +750,8 @@
       invoice: r.invoice || '',
       tanggal: r.tanggal || '',
       totalPL: r.total_pl || '',
+      keteranganFinish: r.keterangan_finish || '',
+      keteranganAreaBarang: r.keterangan_area_barang || '',
       motifGroups: (r.motif_rows && r.motif_rows.length) ? r.motif_rows : [{ no:'#1', items:[{motif:'',area:''}] }]
     }];
     if(r.tanggal_laporan) document.getElementById('globalTanggal').value = r.tanggal_laporan;
@@ -710,6 +773,23 @@
     const statusEl = document.getElementById('statusMsg');
     statusEl.textContent = 'Edit dibatalkan.';
     statusEl.className = '';
+  }
+
+  async function postHistoryItem(r){
+    if(!window.confirm('Post laporan "' + (r.customer||'-') + ' / ' + (r.invoice||'-') + '"? Data ini akan hilang dari daftar aktif (tetap tersimpan, bisa diambil lewat Download Report).')) return;
+    const statusEl = document.getElementById('statusMsg');
+    try{
+      const { error } = await supabaseClient.from(TABLE_NAME).update({ posted: true }).eq('id', r.id);
+      if(error) throw error;
+      statusEl.textContent = 'Data berhasil di-post.';
+      statusEl.className = 'ok';
+      selectedHistoryIds.delete(r.id);
+      if(editingId === r.id) cancelEditPlan();
+      loadHistory();
+    }catch(err){
+      statusEl.textContent = 'Gagal post: ' + (err.message || err);
+      statusEl.className = 'err';
+    }
   }
 
   async function deleteHistoryItem(r){
@@ -788,6 +868,7 @@
       const { data, error } = await supabaseClient
         .from(TABLE_NAME)
         .select('*')
+        .or('posted.eq.false,posted.is.null')
         .order('created_at', { ascending:false })
         .limit(50);
       if(error) throw error;
@@ -841,6 +922,14 @@
       });
 
       const tdAksi = tr.querySelector('.td-aksi');
+      const postBtn = document.createElement('button');
+      postBtn.type = 'button';
+      postBtn.className = 'btn-aksi-icon btn-post';
+      postBtn.title = 'Post laporan ini (akan hilang dari daftar aktif)';
+      postBtn.innerHTML = 'ᯓ➤';
+      postBtn.addEventListener('click', () => postHistoryItem(r));
+      tdAksi.appendChild(postBtn);
+
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'btn-aksi-icon btn-edit';
@@ -888,33 +977,50 @@
   }
 
   // ==== BANGUN TEKS WA UNTUK 1 BARIS DATA RIWAYAT ====
-  function buildRowWaText(r){
+  function buildReportHeader(r){
     const days = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
     const months = ['JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI', 'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'];
 
     const repDate = r.tanggal_laporan ? new Date(r.tanggal_laporan) : null;
     const repStr = (repDate && !isNaN(repDate)) ? `${days[repDate.getDay()]}, ${repDate.getDate()} ${months[repDate.getMonth()]} ${repDate.getFullYear()}` : (r.tanggal_laporan || '-');
     const shift = r.shift || '1';
+
+    return [
+      `*REPORT UPDATE PENGERJAAN EXPORT SHIFT ${shift}*`,
+      repStr
+    ].join('\n');
+  }
+
+  function buildCustomerBlock(r){
     const stufingStr = r.tanggal ? r.tanggal.toUpperCase() : '-';
 
     const lines = [
-      `*REPORT UPDATE PENGERJAAN EXPORT SHIFT ${shift}*`,
-      repStr,
-      '',
       `✅ *${r.customer || '-'} INV ${r.invoice || '-'}*`,
       `RENCANA STUFING ${stufingStr}`,
-      `TOTAL PL ${r.total_pl || '-'}`,
+      'TOTAL PL ' + (r.total_pl || '-'),
       '*FINISH*'
     ];
 
+    if(r.keterangan_finish && r.keterangan_finish.trim() !== ''){
+      lines.push(`KET: ${r.keterangan_finish}`);
+    }
+
     (r.motif_rows || []).forEach(grp => {
-      (grp.items || []).forEach(item => {
-        const text = [item.motif, item.area].filter(Boolean).join(' ');
-        if (text.trim() !== '') {
+      const validTexts = (grp.items || [])
+        .map(item => [item.motif, item.area].filter(Boolean).join(' '))
+        .filter(text => text.trim() !== '');
+      validTexts.forEach((text, idx) => {
+        if(idx === 0){
           lines.push(`${grp.no || '#'} ${text}`);
+        } else {
+          lines.push(`    ${text}`);
         }
       });
     });
+
+    if(r.keterangan_area_barang && r.keterangan_area_barang.trim() !== ''){
+      lines.push(`*${r.keterangan_area_barang}*`);
+    }
 
     return lines.join('\n');
   }
@@ -923,8 +1029,94 @@
   function shareSelectedToWA(){
     if(selectedHistoryIds.size === 0) return;
     const selectedRows = lastHistoryRows.filter(r => selectedHistoryIds.has(r.id));
-    const text = selectedRows.map(buildRowWaText).join('\n\n——————————\n\n');
+    if(!selectedRows.length) return;
+    const header = buildReportHeader(selectedRows[0]);
+    const body = selectedRows.map(buildCustomerBlock).join('\n\n——————————\n\n');
+    const text = header + '\n\n' + body;
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  }
+
+  // ==== TARIK DATA (rentang tanggal, termasuk yang sudah di-post) ====
+  function csvEscape(v){
+    const s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function motifSummaryFor(row){
+    return (row.motif_rows||[]).map(grp => {
+      const itemsText = (grp.items||[]).map(it => [it.motif, it.area].filter(Boolean).join(' / ')).filter(Boolean);
+      if(!itemsText.length) return '';
+      return (grp.no || '#') + ' ' + itemsText.join(' & ');
+    }).filter(Boolean).join(' | ');
+  }
+
+  async function downloadReport(){
+    const statusEl = document.getElementById('downloadReportStatus');
+    const btn = document.getElementById('downloadReportBtn');
+    const dari = document.getElementById('reportDari').value;
+    const sampai = document.getElementById('reportSampai').value;
+
+    if(!dari || !sampai){
+      statusEl.textContent = 'Isi dulu Dari Tanggal & Sampai Tanggal.';
+      statusEl.className = 'download-report-status err';
+      return;
+    }
+    if(dari > sampai){
+      statusEl.textContent = 'Dari Tanggal tidak boleh lebih besar dari Sampai Tanggal.';
+      statusEl.className = 'download-report-status err';
+      return;
+    }
+
+    btn.disabled = true;
+    statusEl.textContent = 'Mengambil data...';
+    statusEl.className = 'download-report-status';
+
+    try{
+      const { data, error } = await supabaseClient
+        .from(TABLE_NAME)
+        .select('*')
+        .gte('tanggal_laporan', dari)
+        .lte('tanggal_laporan', sampai)
+        .order('tanggal_laporan', { ascending: true });
+      if(error) throw error;
+
+      if(!data || !data.length){
+        statusEl.textContent = 'Tidak ada data pada rentang tanggal itu.';
+        statusEl.className = 'download-report-status err';
+        return;
+      }
+
+      const headers = ['Tanggal Laporan','Shift','Customer','Invoice','Rencana Stufing','Total PL','Keterangan Finish','Motif & Area','Keterangan Area Barang','Status'];
+      const lines = [headers.map(csvEscape).join(',')];
+      data.forEach(r => {
+        lines.push([
+          r.tanggal_laporan || '',
+          r.shift || '',
+          r.customer || '',
+          r.invoice || '',
+          r.tanggal || '',
+          r.total_pl || '',
+          r.keterangan_finish || '',
+          motifSummaryFor(r),
+          r.keterangan_area_barang || '',
+          r.posted ? 'SUDAH DI-POST' : 'AKTIF'
+        ].map(csvEscape).join(','));
+      });
+
+      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'REPORT_EXPORT_' + dari + '_sd_' + sampai + '.csv';
+      a.click();
+
+      statusEl.textContent = 'Berhasil tarik ' + data.length + ' baris data.';
+      statusEl.className = 'download-report-status ok';
+    }catch(err){
+      statusEl.textContent = 'Gagal tarik data: ' + (err.message || err);
+      statusEl.className = 'download-report-status err';
+    }finally{
+      btn.disabled = false;
+    }
   }
 
   // ==== SHARE SEMUA PENGERJAAN KE WA SEKALIGUS ====
@@ -952,14 +1144,26 @@
       lines.push(`TOTAL PL ${p.totalPL || '-'}`);
       lines.push('*FINISH*');
 
+      if(p.keteranganFinish && p.keteranganFinish.trim() !== ''){
+        lines.push(`KET: ${p.keteranganFinish}`);
+      }
+
       (p.motifGroups || []).forEach(grp => {
-        (grp.items || []).forEach(item => {
-          const text = [item.motif, item.area].filter(Boolean).join(' ');
-          if (text.trim() !== '') {
+        const validTexts = (grp.items || [])
+          .map(item => [item.motif, item.area].filter(Boolean).join(' '))
+          .filter(text => text.trim() !== '');
+        validTexts.forEach((text, idx) => {
+          if(idx === 0){
             lines.push(`${grp.no} ${text}`);
+          } else {
+            lines.push(`    ${text}`);
           }
         });
       });
+
+      if(p.keteranganAreaBarang && p.keteranganAreaBarang.trim() !== ''){
+        lines.push(`*${p.keteranganAreaBarang}*`);
+      }
     });
 
     const text = lines.join('\n');
@@ -976,6 +1180,7 @@
   document.getElementById('refreshBtn').onclick = loadHistory;
   document.getElementById('shareWaGlobalBtn').onclick = shareAllToWA;
   document.getElementById('shareSelectedBtn').onclick = shareSelectedToWA;
+  document.getElementById('downloadReportBtn').onclick = downloadReport;
 
   plans.push(newPlan());
   if(restoreAutosave()){
