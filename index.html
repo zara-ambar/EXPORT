@@ -1031,7 +1031,7 @@
     const selectedRows = lastHistoryRows.filter(r => selectedHistoryIds.has(r.id));
     if(!selectedRows.length) return;
     const header = buildReportHeader(selectedRows[0]);
-    const body = selectedRows.map(buildCustomerBlock).join('\n\n——————————\n\n');
+    const body = selectedRows.map(buildCustomerBlock).join('\n\n');
     const text = header + '\n\n' + body;
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   }
