@@ -669,7 +669,7 @@
     body.appendChild(rKetArea);
 
     // DIVIDER: Mengeluarkan Barang (struktur sama seperti Finish — Motif & Area)
-    body.appendChild(dividerEl('Mengeluarkan Barang'));
+    body.appendChild(dividerEl('Barang yang Dikeluarkan'));
 
     const rKetKeluar = el('div','field-row');
     const fKetKeluar = el('div','field');
@@ -1103,7 +1103,7 @@
     }
 
     lines.push('');
-    lines.push('*MENGELUARKAN BARANG*');
+    lines.push('*Brg yg Dikeluarkan*');
 
     if(r.keterangan_keluar && r.keterangan_keluar.trim() !== ''){
       lines.push(`KET: ${r.keterangan_keluar}`);
@@ -1286,7 +1286,7 @@
       }
 
       lines.push('');
-      lines.push('*MENGELUARKAN BARANG*');
+      lines.push('*BRG YG DIKELUARKAN*');
 
       if(p.keteranganKeluar && p.keteranganKeluar.trim() !== ''){
         lines.push(`KET: ${p.keteranganKeluar}`);
